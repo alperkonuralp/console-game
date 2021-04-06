@@ -2,6 +2,7 @@
 using ConsoleGame.Entities;
 using ConsoleTables;
 using ConsoleTools;
+using GameAnalyticsSDK.Net;
 using System;
 
 namespace ConsoleGame
@@ -22,8 +23,27 @@ namespace ConsoleGame
 		{
 			_args = args;
 			CheckSetup();
+			SetupGameAnalytics();
 			WriteScore();
 			WriteMenu();
+		}
+
+		private void SetupGameAnalytics()
+		{
+			// GameAnalytics.SetEnabledInfoLog(true)
+			// GameAnalytics.SetEnabledVerboseLog(true)
+
+			GameAnalytics.ConfigureBuild("0.10");
+			GameAnalytics.ConfigureUserId($"ConsoleGame_{_gameConfig.UserId}");
+
+			GameAnalytics.ConfigureAvailableResourceCurrencies("gems", "gold");
+			GameAnalytics.ConfigureAvailableResourceItemTypes("boost", "lives");
+
+			GameAnalytics.ConfigureAvailableCustomDimensions01("ninja", "samurai");
+			GameAnalytics.ConfigureAvailableCustomDimensions02("whale", "dolpin");
+			GameAnalytics.ConfigureAvailableCustomDimensions03("horde", "alliance");
+
+			GameAnalytics.Initialize("0561632006fdb5b79e1d0c05a271ce64", "49c2dd90ef213b9ce78dcb9311f97bd9b7c51bd5");
 		}
 
 		private void WriteMenu()
@@ -52,6 +72,8 @@ namespace ConsoleGame
 
 		private void PlayGame()
 		{
+			GameAnalytics.AddProgressionEvent(EGAProgressionStatus.Start, "ConsoleGame");
+
 			PlayHistory history = new PlayHistory()
 			{
 				UserId = _gameConfig.UserId,
@@ -65,7 +87,8 @@ namespace ConsoleGame
 			var number = new Random().Next(1, 1001);
 			int shoot = 0;
 
-			for (var i = 1; i <= 10; i++)
+			int i;
+			for (i = 1; i <= 10; i++)
 			{
 				do
 				{
@@ -98,15 +121,16 @@ namespace ConsoleGame
 			{
 				Console.WriteLine("You Lost!...");
 				history.IsTheWinner = false;
+				GameAnalytics.AddProgressionEvent(EGAProgressionStatus.Complete, "ConsoleGame", 0);
 			}
 			else
 			{
 				history.IsTheWinner = true;
 				_gameConfig.NumberOfWins++;
+				GameAnalytics.AddProgressionEvent(EGAProgressionStatus.Complete, "ConsoleGame", (11 - i) * 100);
 			}
 			_dbManager.SetGameConfig(_gameConfig);
 			_dbManager.SetPlayHistory(history);
-
 
 			Console.WriteLine("Please enter to the continue.");
 			Console.ReadLine();
@@ -126,7 +150,7 @@ namespace ConsoleGame
 			var history = _dbManager.ListOfLastNItem(_gameConfig.UserId, 10);
 			var table = new ConsoleTable("Date / Time", "Duration", "Status");
 			table.Options.EnableCount = false;
-			
+
 			foreach (var item in history)
 			{
 				table.AddRow(item.FinishTime, item.FinishTime - item.StartTime, item.IsTheWinner ? "Won" : "Lost");
@@ -136,10 +160,6 @@ namespace ConsoleGame
 
 			Console.WriteLine("Please enter to the continue.");
 			Console.ReadLine();
-			//ConsoleTable
-			//.From<PlayHistory>(history)
-			//.Configure(o => o.NumberAlignment = Alignment.Left);
-
 		}
 
 		private void CheckSetup()
