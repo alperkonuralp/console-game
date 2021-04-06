@@ -1,5 +1,6 @@
 ﻿using ConsoleGame.Db;
 using ConsoleGame.Entities;
+using ConsoleTables;
 using ConsoleTools;
 using System;
 
@@ -29,6 +30,7 @@ namespace ConsoleGame
 		{
 			var menu = new ConsoleMenu(_args, level: 0)
 				.Add("Play Game", PlayGame)
+				.Add("Game History", WriteHistory)
 				//.Add("Two", () => SomeAction("Two"))
 				//.Add("Three", () => SomeAction("Three"))
 				//.Add("Change me", (thisMenu) => thisMenu.CurrentItem.Name = "I am changed!")
@@ -115,6 +117,30 @@ namespace ConsoleGame
 			Console.WriteLine($"Score : {_gameConfig.NumberOfWins} / {_gameConfig.NumberOfPlays}");
 		}
 
+		private void WriteHistory()
+		{
+			Console.Clear();
+			Console.WriteLine("Game History");
+			Console.WriteLine(new string('-', 30));
+
+			var history = _dbManager.ListOfLastNItem(_gameConfig.UserId, 10);
+			var table = new ConsoleTable("Date / Time", "Duration", "Status");
+			table.Options.EnableCount = false;
+			
+			foreach (var item in history)
+			{
+				table.AddRow(item.FinishTime, item.FinishTime - item.StartTime, item.IsTheWinner ? "Won" : "Lost");
+			}
+
+			table.Write(Format.MarkDown);
+
+			Console.WriteLine("Please enter to the continue.");
+			Console.ReadLine();
+			//ConsoleTable
+			//.From<PlayHistory>(history)
+			//.Configure(o => o.NumberAlignment = Alignment.Left);
+
+		}
 
 		private void CheckSetup()
 		{

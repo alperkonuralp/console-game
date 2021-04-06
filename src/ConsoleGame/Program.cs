@@ -3,13 +3,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace ConsoleGame
 {
-	class Program
+	public static class Program
 	{
-		static void Main(string[] args)
+		private static void Main(string[] args)
 		{
-			//var gamer = new Gamer();
-			//gamer.Start();
-
 			ServiceProvider serviceProvider = CreateServiceProvider();
 
 			var gamer = serviceProvider.GetService<IGamer>();
@@ -27,6 +24,5 @@ namespace ConsoleGame
 			var serviceProvider = serviceCollection.BuildServiceProvider();
 			return serviceProvider;
 		}
-
 	}
 }

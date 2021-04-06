@@ -2,6 +2,7 @@
 using Dapper;
 using Microsoft.Data.Sqlite;
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace ConsoleGame.Db
@@ -49,12 +50,10 @@ namespace ConsoleGame.Db
       SqliteConnectionStringBuilder sqliteConnectionStringBuilder = new SqliteConnectionStringBuilder
       {
         DataSource = dbName,
-        //Mode = SqliteOpenMode.ReadWriteCreate
       };
 
       var con = new SqliteConnection(sqliteConnectionStringBuilder.ConnectionString);
-      //SQLitePCL.raw.SetProvider(new SQLitePCL.SQLite3Provider_e_sqlite3());
-
+      
       return con;
     }
 
@@ -88,6 +87,20 @@ WHERE Id = 1");
       }
 
       return gameConfig;
+    }
+
+    public List<PlayHistory> ListOfLastNItem(Guid userId, int n)
+    {
+      var list = _defaultConnection.Query<PlayHistory>(@"
+SELECT Id, UserId, StartTime, FinishTime, IsTheWinner
+FROM PlayHistory
+WHERE UserId = @UserId
+ORDER BY StartTime desc
+LIMIT @n
+", new { UserId = userId, n}
+        );
+
+      return list.AsList();
     }
 
     public void SetGameConfig(GameConfig gameConfig)
