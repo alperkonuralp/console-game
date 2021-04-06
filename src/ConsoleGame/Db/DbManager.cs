@@ -1,21 +1,27 @@
 ﻿using ConsoleGame.Entities;
+using ConsoleGame.Events;
 using Dapper;
 using Microsoft.Data.Sqlite;
+using Rebus.Handlers;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace ConsoleGame.Db
 {
-  public class DbManager : IDbManager
+  public class DbManager : IDbManager, IHandleMessages<SaveGameConfig>, IHandleMessages<SavePlayHistory>
   {
     private const string dbName = "game.db";
 
     private SqliteConnection _defaultConnection;
 
-    public DbManager()
+    public DbManager(IEnumerable<SqlMapper.ITypeHandler> typeHandlers)
     {
-      SqlMapper.AddTypeHandler<Guid>(new SqliteGuidTypeHandler());
+      foreach (var item in typeHandlers)
+      {
+        SqlMapper.AddTypeHandler(item.GetType().BaseType.GetGenericArguments()[0], item);
+      }
       CheckDbFile();
       CreateDefaultConnection();
       CreateTablesIfNotExists();
@@ -27,15 +33,28 @@ namespace ConsoleGame.Db
   Id INTEGER PRIMARY KEY,
   UserId TEXT NOT NULL,
   UserName TEXT NOT NULL,
-  NumberOfPlays INTEGER NOT NULL, 
-  NumberOfWins INTEGER NOT NULL
+  NumberOfPlays INTEGER NOT NULL,
+  NumberOfWins INTEGER NOT NULL,
+  NumberOfEasyPlays INTEGER NOT NULL,
+  NumberOfEasyWins INTEGER NOT NULL,
+  NumberOfNormalPlays INTEGER NOT NULL,
+  NumberOfNormalWins INTEGER NOT NULL,
+  NumberOfHardPlays INTEGER NOT NULL,
+  NumberOfHardWins INTEGER NOT NULL,
+  LastPlayDateTime DATETIME NOT NULL,
+  UserPoints INTEGER NOT NULL,
+  PointMultiplier REAL NOT NULL
 )");
       _defaultConnection.Execute(@"CREATE TABLE IF NOT EXISTS PlayHistory (
   Id INTEGER PRIMARY KEY,
   UserId TEXT NOT NULL,
+  Level TEXT NOT NULL,
   StartTime DATETIME NOT NULL,
   FinishTime DATETIME NOT NULL,
-  IsTheWinner TINYINT NOT NULL
+  IsTheWinner TINYINT NOT NULL,
+  PcNumber INTEGER NOT NULL,
+  IterationNumber INTEGER NOT NULL,
+  Shoots TEXT NOT NULL
 )");
     }
 
@@ -53,7 +72,7 @@ namespace ConsoleGame.Db
       };
 
       var con = new SqliteConnection(sqliteConnectionStringBuilder.ConnectionString);
-      
+
       return con;
     }
 
@@ -69,7 +88,7 @@ namespace ConsoleGame.Db
     public GameConfig GetGameConfig()
     {
       var gameConfig = _defaultConnection.QueryFirstOrDefault<GameConfig>(@"
-SELECT Id, UserId, UserName, NumberOfPlays, NumberOfWins
+SELECT *
 FROM GameConfig
 WHERE Id = 1");
 
@@ -81,45 +100,74 @@ WHERE Id = 1");
           UserId = Guid.NewGuid(),
           UserName = "",
           NumberOfPlays = 0,
-          NumberOfWins = 0
+          NumberOfWins = 0,
+          NumberOfEasyPlays = 0,
+          NumberOfEasyWins = 0,
+          NumberOfHardPlays = 0,
+          NumberOfHardWins = 0,
+          NumberOfNormalPlays = 0,
+          NumberOfNormalWins = 0,
+          LastPlayDateTime = new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero).UtcDateTime,
+          UserPoints = 0,
+          PointMultiplier = 1.0
         };
-        SetGameConfig(gameConfig);
+        SetGameConfigAsync(gameConfig);
       }
 
       return gameConfig;
     }
 
-    public List<PlayHistory> ListOfLastNItem(Guid userId, int n)
+    public IEnumerable<PlayHistory> ListOfLastNItem(Guid userId, int n)
     {
       var list = _defaultConnection.Query<PlayHistory>(@"
-SELECT Id, UserId, StartTime, FinishTime, IsTheWinner
+SELECT *
 FROM PlayHistory
 WHERE UserId = @UserId
 ORDER BY StartTime desc
 LIMIT @n
-", new { UserId = userId, n}
+", new { UserId = userId, n }
         );
 
-      return list.AsList();
+      return list;
     }
 
-    public void SetGameConfig(GameConfig gameConfig)
+    private Task<int> SetGameConfigAsync(GameConfig gameConfig)
     {
-      _defaultConnection.Execute(@"
-INSERT INTO GameConfig (Id, UserId, UserName, NumberOfPlays, NumberOfWins)
-VALUES (@Id, @UserId, @UserName, @NumberOfPlays, @NumberOfWins)
+      return _defaultConnection.ExecuteAsync(@"
+INSERT INTO GameConfig (Id, UserId, UserName, NumberOfPlays, NumberOfWins, NumberOfEasyPlays, NumberOfEasyWins, NumberOfNormalPlays, NumberOfNormalWins, NumberOfHardPlays, NumberOfHardWins, LastPlayDateTime, UserPoints, PointMultiplier)
+VALUES (@Id, @UserId, @UserName, @NumberOfPlays, @NumberOfWins, @NumberOfEasyPlays, @NumberOfEasyWins, @NumberOfNormalPlays, @NumberOfNormalWins, @NumberOfHardPlays, @NumberOfHardWins, @LastPlayDateTime, @UserPoints, @PointMultiplier)
 ON CONFLICT(Id) DO UPDATE
 SET UserName = excluded.UserName,
     UserId = excluded.UserId,
     NumberOfPlays = excluded.NumberOfPlays,
-    NumberOfWins = excluded.NumberOfWins", gameConfig);
+    NumberOfWins = excluded.NumberOfWins,
+    NumberOfEasyPlays = excluded.NumberOfEasyPlays,
+    NumberOfEasyWins = excluded.NumberOfEasyWins,
+    NumberOfNormalPlays = excluded.NumberOfNormalPlays,
+    NumberOfNormalWins = excluded.NumberOfNormalWins,
+    NumberOfHardPlays = excluded.NumberOfHardPlays,
+    NumberOfHardWins = excluded.NumberOfHardWins,
+    LastPlayDateTime = excluded.LastPlayDateTime,
+    UserPoints = excluded.UserPoints,
+    PointMultiplier = excluded.PointMultiplier
+", gameConfig);
     }
 
-    public void SetPlayHistory(PlayHistory history)
+    private Task<int> SetPlayHistoryAsync(PlayHistory history)
     {
-      _defaultConnection.Execute(@"
-INSERT INTO PlayHistory (UserId, StartTime, FinishTime, IsTheWinner)
-VALUES (@UserId, @StartTime, @FinishTime, @IsTheWinner)", history);
+      return _defaultConnection.ExecuteAsync(@"
+INSERT INTO PlayHistory (UserId, Level, StartTime, FinishTime, IsTheWinner, PcNumber, IterationNumber, Shoots)
+VALUES (@UserId, @Level, @StartTime, @FinishTime, @IsTheWinner, @PcNumber, @IterationNumber, @Shoots)", history);
+    }
+
+    public async Task Handle(SaveGameConfig message)
+    {
+      await SetGameConfigAsync(message.Config);
+    }
+
+    public async Task Handle(SavePlayHistory message)
+    {
+      await SetPlayHistoryAsync(message.History);
     }
   }
 }

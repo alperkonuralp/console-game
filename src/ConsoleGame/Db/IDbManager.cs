@@ -8,10 +8,11 @@ namespace ConsoleGame.Db
 	public interface IDbManager
 	{
 		void CheckDbFile();
+
 		SqliteConnection GetConnection();
+
 		GameConfig GetGameConfig();
-		List<PlayHistory> ListOfLastNItem(Guid userId, int n);
-		void SetGameConfig(GameConfig gameConfig);
-		void SetPlayHistory(PlayHistory history);
+
+		IEnumerable<PlayHistory> ListOfLastNItem(Guid userId, int n);
 	}
 }
