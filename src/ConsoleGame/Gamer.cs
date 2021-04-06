@@ -4,6 +4,7 @@ using ConsoleTables;
 using ConsoleTools;
 using GameAnalyticsSDK.Net;
 using System;
+using System.Security.Cryptography;
 
 namespace ConsoleGame
 {
@@ -70,6 +71,11 @@ namespace ConsoleGame
 			menu.Show();
 		}
 
+		private static int Next(int min, int max)
+		{
+			return RandomNumberGenerator.GetInt32(min, max);
+		}
+
 		private void PlayGame()
 		{
 			GameAnalytics.AddProgressionEvent(EGAProgressionStatus.Start, "ConsoleGame");
@@ -84,7 +90,7 @@ namespace ConsoleGame
 			Console.WriteLine("The Console Game");
 			Console.WriteLine(new string('-', 30));
 
-			var number = new Random().Next(1, 1001);
+			var number = Next(1, 1001);
 			int shoot = 0;
 
 			int i;
@@ -117,7 +123,7 @@ namespace ConsoleGame
 			}
 			history.FinishTime = DateTimeOffset.UtcNow.DateTime;
 			_gameConfig.NumberOfPlays++;
-			if (shoot == 0)
+			if (i == 11)
 			{
 				Console.WriteLine("You Lost!...");
 				history.IsTheWinner = false;
