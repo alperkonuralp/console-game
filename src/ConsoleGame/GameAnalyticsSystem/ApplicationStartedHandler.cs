@@ -18,15 +18,17 @@ namespace ConsoleGame.GameAnalyticsSystem
 
 		public Task Handle(ApplicationStarted message)
 		{
+			_logger.LogInformation("{@ClassName}.{@MethodName} {@Status}.", GetType().FullName, nameof(Handle), "Starting");
+
 			SetupGameAnalytics(message);
 
-			_logger.LogInformation(LoggerName + "System is started.");
+			_logger.LogInformation("{@ClassName}.{@MethodName} {@Status}.", GetType().FullName, nameof(Handle), "Finished");
 			return Task.CompletedTask;
 		}
 
 		private void SetupGameAnalytics(ApplicationStarted message)
 		{
-			GameAnalytics.SetEnabledInfoLog(true);
+			// GameAnalytics.SetEnabledInfoLog(true)
 			// GameAnalytics.SetEnabledVerboseLog(true)
 
 			GameAnalytics.ConfigureBuild("0.10");
@@ -53,15 +55,19 @@ namespace ConsoleGame.GameAnalyticsSystem
 				case EGALoggerMessageType.Error:
 					Serilog.Log.Error("{@Logger} : " + msg, LoggerName);
 					break;
+
 				case EGALoggerMessageType.Warning:
 					Serilog.Log.Warning("{@Logger} : " + msg, LoggerName);
 					break;
+
 				case EGALoggerMessageType.Info:
 					Serilog.Log.Information("{@Logger} : " + msg, LoggerName);
 					break;
+
 				case EGALoggerMessageType.Debug:
 					Serilog.Log.Debug("{@Logger} : " + msg, LoggerName);
 					break;
+
 				default:
 					break;
 			}

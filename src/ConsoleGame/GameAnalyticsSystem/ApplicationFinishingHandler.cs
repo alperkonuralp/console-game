@@ -17,10 +17,12 @@ namespace ConsoleGame.GameAnalyticsSystem
 
 		public Task Handle(ApplicationFinishing message)
 		{
+			_logger.LogInformation("{@ClassName}.{@MethodName} {@Status}.", GetType().FullName, nameof(Handle), "Starting");
+			
 			GameAnalytics.EndSession();
 			GameAnalytics.OnQuit();
 
-			_logger.LogInformation(ApplicationStartedHandler.LoggerName + "System is closed.");
+			_logger.LogInformation("{@ClassName}.{@MethodName} {@Status}.", GetType().FullName, nameof(Handle), "Finished");
 			return Task.CompletedTask;
 		}
 	}
