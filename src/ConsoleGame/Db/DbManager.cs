@@ -47,12 +47,15 @@ namespace ConsoleGame.Db
 )");
       _defaultConnection.Execute(@"CREATE TABLE IF NOT EXISTS PlayHistory (
   Id INTEGER PRIMARY KEY,
+  RowGuid TEXT NOT NULL UNIQUE,
   UserId TEXT NOT NULL,
+  Status TEXT NOT NULL,
   Level TEXT NOT NULL,
   StartTime DATETIME NOT NULL,
-  FinishTime DATETIME NOT NULL,
-  IsTheWinner TINYINT NOT NULL,
+  FinishTime DATETIME NULL,
+  IsTheWinner TINYINT NULL,
   PcNumber INTEGER NOT NULL,
+  GamePoint INTEGER NULL,
   IterationNumber INTEGER NOT NULL,
   Shoots TEXT NOT NULL
 )");
@@ -122,16 +125,16 @@ WHERE Id = 1");
       var list = _defaultConnection.Query<PlayHistory>(@"
 SELECT *
 FROM PlayHistory
-WHERE UserId = @UserId
+WHERE UserId = @UserId and Status = @Status
 ORDER BY StartTime desc
 LIMIT @n
-", new { UserId = userId, n }
+", new { UserId = userId, n, Status = GameStatus.Finished }
         );
 
       return list;
     }
 
-    private Task<int> SetGameConfigAsync(GameConfig gameConfig)
+    private Task<int> SetGameConfigAsync(object gameConfig)
     {
       return _defaultConnection.ExecuteAsync(@"
 INSERT INTO GameConfig (Id, UserId, UserName, NumberOfPlays, NumberOfWins, NumberOfEasyPlays, NumberOfEasyWins, NumberOfNormalPlays, NumberOfNormalWins, NumberOfHardPlays, NumberOfHardWins, LastPlayDateTime, UserPoints, PointMultiplier)
@@ -153,21 +156,32 @@ SET UserName = excluded.UserName,
 ", gameConfig);
     }
 
-    private Task<int> SetPlayHistoryAsync(PlayHistory history)
+    private Task<int> SetPlayHistoryAsync(object history)
     {
       return _defaultConnection.ExecuteAsync(@"
-INSERT INTO PlayHistory (UserId, Level, StartTime, FinishTime, IsTheWinner, PcNumber, IterationNumber, Shoots)
-VALUES (@UserId, @Level, @StartTime, @FinishTime, @IsTheWinner, @PcNumber, @IterationNumber, @Shoots)", history);
+INSERT INTO PlayHistory (RowGuid, UserId, Status, Level, StartTime, FinishTime, IsTheWinner, PcNumber, IterationNumber, Shoots, GamePoint)
+VALUES (@RowGuid, @UserId, @Status, @Level, @StartTime, @FinishTime, @IsTheWinner, @PcNumber, @IterationNumber, @Shoots, @GamePoint)
+ON CONFLICT(RowGuid) DO UPDATE
+SET UserId = excluded.UserId,
+    Status = excluded.Status,
+    Level = excluded.Level,
+    StartTime = excluded.StartTime,
+    FinishTime = excluded.FinishTime,
+    IsTheWinner = excluded.IsTheWinner,
+    PcNumber = excluded.PcNumber,
+    IterationNumber = excluded.IterationNumber,
+    Shoots = excluded.Shoots,
+    GamePoint = excluded.GamePoint", history);
     }
 
     public async Task Handle(SaveGameConfig message)
     {
-      await SetGameConfigAsync(message.Config);
+      await SetGameConfigAsync(message);
     }
 
     public async Task Handle(SavePlayHistory message)
     {
-      await SetPlayHistoryAsync(message.History);
+      await SetPlayHistoryAsync(message);
     }
   }
 }

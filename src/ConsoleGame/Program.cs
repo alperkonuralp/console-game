@@ -1,5 +1,7 @@
-﻿using ConsoleGame.Db;
+﻿using AutoMapper;
+using ConsoleGame.Db;
 using ConsoleGame.Entities;
+using ConsoleGame.Events;
 using Dapper;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,9 +20,7 @@ namespace ConsoleGame
 	{
 		protected Program()
 		{
-
 		}
-
 
 		private static readonly IReadOnlyDictionary<GameLevel, int> _levelStandartPoints =
 			new Dictionary<GameLevel, int> {
@@ -31,11 +31,7 @@ namespace ConsoleGame
 
 		private static void Main(string[] args)
 		{
-			Log.Logger = new LoggerConfiguration()
-			 .WriteTo.File("consoleapp.log")
-			 .WriteTo.Debug()
-			 .CreateLogger();
-
+			SetupLogging();
 
 			var configuration = new ConfigurationBuilder()
 																					.AddEnvironmentVariables()
@@ -43,7 +39,6 @@ namespace ConsoleGame
 																					.Build();
 
 			ServiceProvider serviceProvider = CreateServiceProvider(configuration);
-
 
 			var logger = serviceProvider.GetService<ILogger<Program>>();
 
@@ -54,12 +49,32 @@ namespace ConsoleGame
 			gamer.Start(args);
 		}
 
+		private static void SetupLogging()
+		{
+			Log.Logger = new LoggerConfiguration()
+									.MinimumLevel.Debug()
+									.Enrich.WithAssemblyInformationalVersion()
+									.Enrich.WithAssemblyName()
+									.Enrich.WithAssemblyVersion()
+									.Enrich.WithEnvironmentUserName()
+									.Enrich.WithMachineName()
+									.Enrich.WithMemoryUsage()
+									//.Enrich.WithRebusCorrelationId()
+									.Enrich.WithThreadId()
+									.Enrich.WithThreadName()
+									.WriteTo.File("logs/consoleapp.log", rollingInterval: RollingInterval.Day)
+									.WriteTo.Debug()
+									.CreateLogger();
+		}
+
 		private static ServiceProvider CreateServiceProvider(IConfigurationRoot configuration)
 		{
 			IServiceCollection serviceCollection = new ServiceCollection();
 			serviceCollection.AddSingleton<IConfiguration>(configuration);
 
-			serviceCollection.AddLogging(configure => configure.AddSerilog());
+			serviceCollection.AddLogging(configure => configure.AddSerilog(Log.Logger));
+
+			serviceCollection.AddAutoMapper(typeof(Program).Assembly);
 
 			serviceCollection.AddSingleton<IReadOnlyDictionary<GameLevel, int>>(_levelStandartPoints);
 
@@ -71,13 +86,15 @@ namespace ConsoleGame
 
 			serviceCollection.AddSingleton<SqlMapper.TypeHandler<GameLevel>, SqliteGameLevelTypeHandler>();
 			serviceCollection.AddSingleton<SqlMapper.ITypeHandler, SqliteGameLevelTypeHandler>();
-			
+
 			serviceCollection.AddSingleton<SqlMapper.TypeHandler<Guid>, SqliteGuidTypeHandler>();
 			serviceCollection.AddSingleton<SqlMapper.ITypeHandler, SqliteGuidTypeHandler>();
 
 			serviceCollection.AddSingleton<SqlMapper.TypeHandler<int[]>, SqliteIntegerArrayTypeHandler>();
 			serviceCollection.AddSingleton<SqlMapper.ITypeHandler, SqliteIntegerArrayTypeHandler>();
 
+			serviceCollection.AddSingleton<SqlMapper.TypeHandler<GameStatus>, SqliteGameStatusTypeHandler>();
+			serviceCollection.AddSingleton<SqlMapper.ITypeHandler, SqliteGameStatusTypeHandler>();
 
 			serviceCollection.AutoRegisterHandlersFromAssemblyOf<Program>();
 
@@ -86,10 +103,12 @@ namespace ConsoleGame
 			serviceCollection.AddRebus(configure => configure
 			 .Logging(l => l.Serilog())
 			 .Transport(t => t.UseInMemoryTransport(memoryNetwork, "Messages"))
-			 .Routing(r => r.TypeBased().MapAssemblyOf<Gamer>("Messages")));
+			 .Routing(r => r.TypeBased().MapAssemblyNamespaceOfDerivedFrom<GameStarting, IEvent>("Messages")));
 
 			var serviceProvider = serviceCollection.BuildServiceProvider();
 			serviceProvider.UseRebus();
+			var auconf = serviceProvider.GetService<IMapper>();
+			auconf.ConfigurationProvider.AssertConfigurationIsValid();
 			return serviceProvider;
 		}
 	}

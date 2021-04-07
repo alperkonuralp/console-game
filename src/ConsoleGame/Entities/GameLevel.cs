@@ -1,4 +1,4 @@
-﻿namespace ConsoleGame
+﻿namespace ConsoleGame.Entities
 {
 	public enum GameLevel
 	{

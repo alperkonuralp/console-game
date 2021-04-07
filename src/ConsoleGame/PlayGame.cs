@@ -1,4 +1,5 @@
-﻿using ConsoleGame.Entities;
+﻿using AutoMapper;
+using ConsoleGame.Entities;
 using ConsoleGame.Events;
 using Rebus.Bus;
 using System;
@@ -12,17 +13,20 @@ namespace ConsoleGame
 		private readonly ICommonFunctions _commonFunctions;
 		private readonly IReadOnlyDictionary<GameLevel, int> _levelStandartPoints;
 		private readonly IBus _bus;
+		private readonly IMapper _mapper;
 
 		public PlayGame(
 			GameConfig gameConfig
 			, ICommonFunctions commonFunctions
 			, IReadOnlyDictionary<GameLevel, int> levelStandartPoints
-			, IBus bus)
+			, IBus bus
+			, IMapper mapper)
 		{
 			_gameConfig = gameConfig;
 			_commonFunctions = commonFunctions;
 			_levelStandartPoints = levelStandartPoints;
 			_bus = bus;
+			_mapper = mapper;
 		}
 
 		public void Play(GameLevel gameLevel)
@@ -36,6 +40,8 @@ namespace ConsoleGame
 				PcNumber = _commonFunctions.Next(1, 1001),
 				Shoots = new int[GetShootCount(gameLevel)],
 			};
+
+			_bus.Send(_mapper.Map<GameStarting>(history)).GetAwaiter().GetResult();
 
 			Console.Clear();
 			Console.WriteLine("The Console Game");
@@ -71,6 +77,7 @@ namespace ConsoleGame
 					Console.WriteLine("Make the number smaller.");
 				}
 			}
+			if (!history.IsTheWinner.HasValue) history.IsTheWinner = false;
 			history.FinishTime = DateTimeOffset.UtcNow.DateTime;
 			_gameConfig.NumberOfPlays++;
 			switch (gameLevel)
@@ -90,14 +97,14 @@ namespace ConsoleGame
 				default:
 					break;
 			}
-			if (!history.IsTheWinner)
+			if (!history.IsTheWinner.Value)
 			{
 				Console.WriteLine("You Lost!...");
 			}
 			else
 			{
 				_gameConfig.NumberOfWins++;
-				AddUserPoints(gameLevel);
+				AddUserPoints(gameLevel, history);
 				switch (gameLevel)
 				{
 					case GameLevel.Easy:
@@ -119,16 +126,20 @@ namespace ConsoleGame
 
 			_gameConfig.LastPlayDateTime = DateTimeOffset.UtcNow.DateTime;
 
-			_bus.Send(new SaveGameConfig { Config = _gameConfig }).GetAwaiter().GetResult();
-			_bus.Send(new SavePlayHistory { History = history }).GetAwaiter().GetResult();
+			var gameFinished = _mapper.Map<GameFinished>(history);
+			gameFinished.Game = _mapper.Map<GameFinishedGame>(_gameConfig);
+
+			_bus.Advanced.SyncBus.Send(gameFinished);
 
 			Console.WriteLine("Please enter to the continue.");
 			Console.ReadLine();
 		}
 
-		private void AddUserPoints(GameLevel gameLevel)
+		private void AddUserPoints(GameLevel gameLevel, PlayHistory history)
 		{
-			_gameConfig.UserPoints += (long)(_levelStandartPoints[gameLevel] * _gameConfig.PointMultiplier);
+			int p = (int)(_levelStandartPoints[gameLevel] * _gameConfig.PointMultiplier);
+			history.GamePoint = p;
+			_gameConfig.UserPoints += (uint)p;
 		}
 
 		private int GetShootCount(GameLevel gameLevel)

@@ -1,4 +1,6 @@
-﻿namespace ConsoleGame
+﻿using ConsoleGame.Entities;
+
+namespace ConsoleGame
 {
 	public interface IPlayGame
 	{

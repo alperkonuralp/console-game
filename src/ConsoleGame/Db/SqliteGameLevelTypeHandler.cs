@@ -1,4 +1,5 @@
-﻿using Dapper;
+﻿using ConsoleGame.Entities;
+using Dapper;
 using System;
 using System.Data;
 

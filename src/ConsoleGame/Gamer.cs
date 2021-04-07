@@ -1,4 +1,5 @@
-﻿using ConsoleGame.Db;
+﻿using AutoMapper;
+using ConsoleGame.Db;
 using ConsoleGame.Entities;
 using ConsoleGame.Events;
 using ConsoleTables;
@@ -14,18 +15,21 @@ namespace ConsoleGame
 		private readonly GameConfig _gameConfig;
 		private readonly IPlayGame _playGame;
 		private readonly IBus _bus;
+		private readonly IMapper _mapper;
 		private string[] _args;
 
 		public Gamer(
 			IDbManager dbManager
 			, IPlayGame playGame
 			, GameConfig gameConfig
-			, IBus bus)
+			, IBus bus
+			, IMapper mapper)
 		{
 			_dbManager = dbManager;
 			_playGame = playGame;
 			_gameConfig = gameConfig;
 			_bus = bus;
+			_mapper = mapper;
 		}
 
 		public void Start(string[] args)
@@ -43,11 +47,6 @@ namespace ConsoleGame
 				.Add("Play Normal Game", () => _playGame.Play(GameLevel.Normal))
 				.Add("Play Hard Game", () => _playGame.Play(GameLevel.Hard))
 				.Add("Game History", WriteHistory)
-				//.Add("Two", () => SomeAction("Two"))
-				//.Add("Three", () => SomeAction("Three"))
-				//.Add("Change me", (thisMenu) => thisMenu.CurrentItem.Name = "I am changed!")
-				//.Add("Close", ConsoleMenu.Close)
-				//.Add("Action then Close", (thisMenu) => { SomeAction("Close"); thisMenu.CloseMenu(); })
 				.Add("Exit", () =>
 				{
 					Environment.Exit(0);
@@ -56,10 +55,12 @@ namespace ConsoleGame
 				{
 					config.Selector = "--> ";
 					config.EnableFilter = true;
-					config.Title = "The Console Game";
-					config.EnableWriteTitle = true;
+					config.EnableWriteTitle = false;
 					config.EnableBreadcrumb = false;
 					config.WriteHeaderAction = WriteScore;
+					config.ItemForegroundColor = ConsoleColor.DarkGray;
+					config.SelectedItemBackgroundColor = ConsoleColor.Black;
+					config.SelectedItemForegroundColor = ConsoleColor.Red;
 				});
 
 			menu.Show();
@@ -67,7 +68,45 @@ namespace ConsoleGame
 
 		private void WriteScore()
 		{
-			Console.WriteLine($"Score : {_gameConfig.NumberOfWins} / {_gameConfig.NumberOfPlays}");
+			ConsoleWriteWithColor(ConsoleColor.Blue, @"----------------
+The Console Game
+----------------");
+			Console.WriteLine();
+
+			ConsoleWriteWithColor(ConsoleColor.Gray, "Match Counts (Won/Total) : ");
+			ConsoleWriteWithColor(ConsoleColor.White, _gameConfig.NumberOfWins);
+			ConsoleWriteWithColor(ConsoleColor.Gray, " / ");
+			ConsoleWriteWithColor(ConsoleColor.White, _gameConfig.NumberOfPlays);
+
+			ConsoleWriteWithColor(ConsoleColor.Gray, "   Score : ");
+			ConsoleWriteWithColor(ConsoleColor.Green, _gameConfig.UserPoints);
+
+			Console.WriteLine();
+
+			ConsoleWriteWithColor(ConsoleColor.Gray, "                    Easy : ");
+			ConsoleWriteWithColor(ConsoleColor.White, _gameConfig.NumberOfEasyWins);
+			ConsoleWriteWithColor(ConsoleColor.Gray, " / ");
+			ConsoleWriteWithColor(ConsoleColor.White, _gameConfig.NumberOfEasyPlays);
+
+			ConsoleWriteWithColor(ConsoleColor.Gray, "   Normal : ");
+			ConsoleWriteWithColor(ConsoleColor.White, _gameConfig.NumberOfNormalWins);
+			ConsoleWriteWithColor(ConsoleColor.Gray, " / ");
+			ConsoleWriteWithColor(ConsoleColor.White, _gameConfig.NumberOfNormalPlays);
+
+			ConsoleWriteWithColor(ConsoleColor.Gray, "   Hard : ");
+			ConsoleWriteWithColor(ConsoleColor.White, _gameConfig.NumberOfHardWins);
+			ConsoleWriteWithColor(ConsoleColor.Gray, " / ");
+			ConsoleWriteWithColor(ConsoleColor.White, _gameConfig.NumberOfHardPlays);
+
+			Console.WriteLine();
+		}
+
+		private void ConsoleWriteWithColor(ConsoleColor color, object message)
+		{
+			var old = Console.ForegroundColor;
+			Console.ForegroundColor = color;
+			Console.Write(message);
+			Console.ForegroundColor = old;
 		}
 
 		private void WriteHistory()
@@ -77,12 +116,26 @@ namespace ConsoleGame
 			Console.WriteLine(new string('-', 30));
 
 			var history = _dbManager.ListOfLastNItem(_gameConfig.UserId, 10);
-			var table = new ConsoleTable("Date / Time", "Duration", "Status");
+			var table = new ConsoleTable(
+				"Level", 
+				"Date / Time", 
+				"Duration", 
+				"Status",
+				"Game Point",
+				"Iteration Number",
+				"Number Held");
 			table.Options.EnableCount = false;
 
 			foreach (var item in history)
 			{
-				table.AddRow(item.FinishTime, item.FinishTime - item.StartTime, item.IsTheWinner ? "Won" : "Lost");
+				table.AddRow(
+					item.Level.ToString(),
+					item.FinishTime, 
+					item.FinishTime - item.StartTime, 
+					(item.IsTheWinner ?? false) ? "Won" : "Lost",
+					item.GamePoint,
+					item.IterationNumber,
+					item.PcNumber);
 			}
 
 			table.Write(Format.MarkDown);
@@ -104,7 +157,7 @@ namespace ConsoleGame
 			Console.WriteLine("Please Enter User Name : ");
 			var userName = Console.ReadLine();
 			_gameConfig.UserName = userName;
-			_bus.Send(new SaveGameConfig { Config = _gameConfig });
+			_bus.Send(_mapper.Map<SaveGameConfig>(_gameConfig));
 			Console.Clear();
 		}
 	}

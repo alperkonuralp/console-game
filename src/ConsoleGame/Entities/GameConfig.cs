@@ -28,7 +28,7 @@ namespace ConsoleGame.Entities
 
 		public DateTime LastPlayDateTime { get; set; }
 
-		public long UserPoints { get; set; }
+		public uint UserPoints { get; set; }
 
 		public double PointMultiplier { get; set; }
 	}

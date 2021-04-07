@@ -2,7 +2,7 @@
 
 namespace ConsoleGame.Events
 {
-	public class SaveGameConfig : IEvent
+	public class GameFinishedGame : IEvent
 	{
 		public int Id { get; set; }
 
