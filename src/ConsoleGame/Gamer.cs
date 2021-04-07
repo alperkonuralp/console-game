@@ -36,8 +36,14 @@ namespace ConsoleGame
 		{
 			_args = args;
 			CheckSetup();
+			FireApplicationStartedEvent();
 			WriteScore();
 			WriteMenu();
+		}
+
+		private void FireApplicationStartedEvent()
+		{
+			_bus.Advanced.SyncBus.Send(_mapper.Map<ApplicationStarted>(_gameConfig));
 		}
 
 		private void WriteMenu()
@@ -49,6 +55,7 @@ namespace ConsoleGame
 				.Add("Game History", WriteHistory)
 				.Add("Exit", () =>
 				{
+					_bus.Advanced.SyncBus.Send(_mapper.Map<ApplicationFinishing>(_gameConfig));
 					Environment.Exit(0);
 				})
 				.Configure(config =>
@@ -117,9 +124,9 @@ The Console Game
 
 			var history = _dbManager.ListOfLastNItem(_gameConfig.UserId, 10);
 			var table = new ConsoleTable(
-				"Level", 
-				"Date / Time", 
-				"Duration", 
+				"Level",
+				"Date / Time",
+				"Duration",
 				"Status",
 				"Game Point",
 				"Iteration Number",
@@ -130,8 +137,8 @@ The Console Game
 			{
 				table.AddRow(
 					item.Level.ToString(),
-					item.FinishTime, 
-					item.FinishTime - item.StartTime, 
+					item.FinishTime,
+					item.FinishTime - item.StartTime,
 					(item.IsTheWinner ?? false) ? "Won" : "Lost",
 					item.GamePoint,
 					item.IterationNumber,
