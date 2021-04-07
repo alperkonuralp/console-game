@@ -6,12 +6,28 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="10.1.1" />
+    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="8.1.1" />
     <PackageReference Include="ConsoleMenu-simple" Version="2.4.0" />
     <PackageReference Include="ConsoleTables" Version="2.4.2" />
     <PackageReference Include="Dapper" Version="2.0.78" />
     <PackageReference Include="GameAnalytics.Net.Core.SDK" Version="3.1.2" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="3.1.13" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="3.1.13" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="3.1.13" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="3.1.13" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.13" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.13" />
+    <PackageReference Include="Rebus" Version="6.5.5" />
+    <PackageReference Include="Rebus.Serilog" Version="6.0.0" />
+    <PackageReference Include="Rebus.ServiceProvider" Version="6.4.1" />
+    <PackageReference Include="Serilog.Enrichers.AssemblyName" Version="1.0.9" />
+    <PackageReference Include="Serilog.Enrichers.Environment" Version="2.1.3" />
+    <PackageReference Include="Serilog.Enrichers.Memory" Version="1.0.4" />
+    <PackageReference Include="Serilog.Enrichers.Thread" Version="3.1.0" />
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="4.1.2" />
+    <PackageReference Include="Serilog.Sinks.Debug" Version="2.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="4.1.0" />
     <PackageReference Include="SQLite" Version="3.13.0" />
   </ItemGroup>
 

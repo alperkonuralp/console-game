@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace ConsoleGame.Entities
+namespace ConsoleGame.Events
 {
-	public class GameConfig
+	public class GameFinishedGame : IEvent
 	{
 		public int Id { get; set; }
 
@@ -28,7 +28,7 @@ namespace ConsoleGame.Entities
 
 		public DateTime LastPlayDateTime { get; set; }
 
-		public uint UserPoints { get; set; }
+		public long UserPoints { get; set; }
 
 		public double PointMultiplier { get; set; }
 	}

@@ -1,12 +1,11 @@
-﻿using System;
+﻿using ConsoleGame.Entities;
+using System;
 
-namespace ConsoleGame.Entities
+namespace ConsoleGame.Events
 {
-	public class PlayHistory
+	public class SavePlayHistory : IEvent
 	{
-		public int Id { get; set; }
-
-		public Guid RowGuid { get; set; } = Guid.NewGuid();
+		public Guid RowGuid { get; set; }
 
 		public Guid UserId { get; set; }
 
@@ -21,7 +20,7 @@ namespace ConsoleGame.Entities
 		public bool? IsTheWinner { get; set; }
 
 		public int PcNumber { get; set; }
-		
+
 		public int? GamePoint { get; set; }
 
 		public int IterationNumber { get; set; }
