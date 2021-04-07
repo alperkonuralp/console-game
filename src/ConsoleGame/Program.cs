@@ -11,6 +11,7 @@ using Rebus.Routing.TypeBased;
 using Rebus.ServiceProvider;
 using Rebus.Transport.InMem;
 using Serilog;
+using Serilog.Formatting.Compact;
 using System;
 using System.Collections.Generic;
 
@@ -47,6 +48,10 @@ namespace ConsoleGame
 			var gamer = serviceProvider.GetService<IGamer>();
 
 			gamer.Start(args);
+
+			logger.LogDebug("Console Game is finishing.");
+
+			Log.CloseAndFlush();
 		}
 
 		private static void SetupLogging()
@@ -63,6 +68,7 @@ namespace ConsoleGame
 									.Enrich.WithThreadId()
 									.Enrich.WithThreadName()
 									.WriteTo.File("logs/consoleapp.log", rollingInterval: RollingInterval.Day)
+									.WriteTo.File(new CompactJsonFormatter(), "logs/consoleapp.pjson", rollingInterval: RollingInterval.Day)
 									.WriteTo.Debug()
 									.CreateLogger();
 		}
