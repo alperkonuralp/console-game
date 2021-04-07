@@ -32,6 +32,11 @@ namespace ConsoleGame
 			CreateMap<GameFinishedGame, SaveGameConfig>();
 			CreateMap<GameConfig, SaveGameConfig>();
 			CreateMap<PlayHistory, SavePlayHistory>();
+
+			CreateMap<GameConfig, ApplicationStarted>();
+			CreateMap<ApplicationStarted, SaveGameConfig>();
+			CreateMap<GameConfig, ApplicationFinishing>();
+			CreateMap<ApplicationFinishing, SaveGameConfig>();
 		}
 	}
 }

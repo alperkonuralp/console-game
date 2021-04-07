@@ -103,7 +103,8 @@ namespace ConsoleGame
 			serviceCollection.AddRebus(configure => configure
 			 .Logging(l => l.Serilog())
 			 .Transport(t => t.UseInMemoryTransport(memoryNetwork, "Messages"))
-			 .Routing(r => r.TypeBased().MapAssemblyNamespaceOfDerivedFrom<GameStarting, IEvent>("Messages")));
+			 .Routing(r => r.TypeBased().MapAssemblyNamespaceOfDerivedFrom<GameStarting, IEvent>("Messages"))
+			 .Options(o => o.SetBusName("ConsoleGame")));
 
 			var serviceProvider = serviceCollection.BuildServiceProvider();
 			serviceProvider.UseRebus();

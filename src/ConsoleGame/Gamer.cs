@@ -36,8 +36,14 @@ namespace ConsoleGame
 		{
 			_args = args;
 			CheckSetup();
+			FireApplicationStartedEvent();
 			WriteScore();
 			WriteMenu();
+		}
+
+		private void FireApplicationStartedEvent()
+		{
+			_bus.Advanced.SyncBus.Send(_mapper.Map<ApplicationStarted>(_gameConfig));
 		}
 
 		private void WriteMenu()
@@ -49,6 +55,7 @@ namespace ConsoleGame
 				.Add("Game History", WriteHistory)
 				.Add("Exit", () =>
 				{
+					_bus.Advanced.SyncBus.Send(_mapper.Map<ApplicationFinishing>(_gameConfig));
 					Environment.Exit(0);
 				})
 				.Configure(config =>
