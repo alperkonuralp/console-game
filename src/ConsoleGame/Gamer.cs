@@ -6,6 +6,8 @@ using ConsoleTables;
 using ConsoleTools;
 using Rebus.Bus;
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ConsoleGame
 {
@@ -53,10 +55,10 @@ namespace ConsoleGame
 				.Add("Play Normal Game", () => _playGame.Play(GameLevel.Normal))
 				.Add("Play Hard Game", () => _playGame.Play(GameLevel.Hard))
 				.Add("Game History", WriteHistory)
-				.Add("Exit", () =>
+				.Add("Exit", (thisMenu) =>
 				{
-					_bus.Advanced.SyncBus.Send(_mapper.Map<ApplicationFinishing>(_gameConfig));
-					Environment.Exit(0);
+					ExitGame().GetAwaiter().GetResult();
+					thisMenu.CloseMenu();
 				})
 				.Configure(config =>
 				{
@@ -72,6 +74,18 @@ namespace ConsoleGame
 
 			menu.Show();
 		}
+
+		private async Task ExitGame()
+		{
+			Console.Clear();
+
+			Console.WriteLine("Please wait while exiting...");
+
+			await _bus.Send(_mapper.Map<ApplicationFinishing>(_gameConfig));
+
+			await Task.Delay(TimeSpan.FromSeconds(5));
+		}
+
 
 		private void WriteScore()
 		{
